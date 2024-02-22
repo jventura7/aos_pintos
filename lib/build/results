@@ -1,0 +1,4 @@
+FAIL tests/lib/sorted-thread-list
+FAIL tests/lib/unsorted-thread-list
+FAIL tests/lib/bad-input
+FAIL tests/lib/not-found

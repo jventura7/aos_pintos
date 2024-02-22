@@ -1,0 +1,12 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (sorted-thread-list) begin
+  (sorted-thread-list) sorted index 4
+  (sorted-thread-list) end
+Differences in `diff -u' format:
+  (sorted-thread-list) begin
+- (sorted-thread-list) sorted index 4
++ (sorted-thread-list) sorted index 0
+  (sorted-thread-list) end
