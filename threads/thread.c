@@ -4,6 +4,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -24,9 +25,13 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* List of processes in THREAD_BLOCKED state. */
+static struct list sleep_list;
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
+
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -90,6 +95,7 @@ void thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&sleep_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -212,6 +218,43 @@ void thread_block (void)
 
   thread_current ()->status = THREAD_BLOCKED;
   schedule ();
+}
+
+/* Will make the current thread go to sleep. This means
+   the thread will have a status of THREAD_BLOCKED
+   and will have a set wakeup time specified by the timer.
+*/
+void thread_sleep(int64_t ticks) {
+  struct thread *curr = thread_current();
+  enum intr_level old_level;
+
+  ASSERT (!intr_context());
+
+  old_level = intr_disable();
+  if (curr != idle_thread)
+    list_push_back (&sleep_list, &curr->elem);
+  curr->status = THREAD_BLOCKED;
+  curr->wakeup = ticks;
+  schedule();
+  intr_set_level (old_level);
+}
+
+/* Goes through each thread in the sleep_list and 
+   based on its wakeup time, will unblock the thread.
+*/
+void thread_wakeup(int64_t os_ticks) {
+  struct list_elem *curr = list_begin(&sleep_list);
+
+  while (curr != list_end(&sleep_list)) {
+    struct thread* t = list_entry(curr, struct thread, elem);
+    struct list_elem *next = list_next(curr);
+    if (os_ticks >= t->wakeup) {
+      curr = list_remove(curr);
+      thread_unblock(t);
+    } else {
+      curr = next;
+    }
+  }
 }
 
 /* Transitions a blocked thread T to the ready-to-run state.
